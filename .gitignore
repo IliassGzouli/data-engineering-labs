@@ -1,9 +1,44 @@
-.env
-venv/
-__pycache__/
-.pytest_cache/
+# macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Keep example environment files
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
 logs/
-data/raw/
-data/processed/
-*.pyc
+
+# Airflow
+airflow.db
+airflow.cfg
+webserver_config.py
+airflow-webserver.pid
+
+# Data files
+*.csv
+*.parquet
+*.xlsx
+
+# Docker and database volumes
+postgres_data/
+airflow_logs/
