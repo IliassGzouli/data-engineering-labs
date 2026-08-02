@@ -24,7 +24,7 @@ def test_load_writes_dataframe_to_postgres(mock_create_engine):
         index=False,
         chunksize=10000,
     )
-
+    mock_engine.dispose.assert_called_once_with()
 
 import pytest
 from unittest.mock import MagicMock, patch
@@ -47,3 +47,4 @@ def test_load_raises_error_when_database_write_fails(mock_create_engine):
         load(mock_df)
 
     mock_df.to_sql.assert_called_once()
+    mock_engine.dispose.assert_called_once_with()
