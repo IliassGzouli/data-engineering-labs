@@ -136,3 +136,28 @@ def test_transform_removes_rows_with_non_positive_values():
         assert len(df_clean) == 1
         assert df_clean.iloc[0]["price"] == 200000
         assert df_clean.iloc[0]["house_size"] == 1000
+
+
+def test_transform_removes_rows_with_missing_state():
+    # Arrange
+    df = pd.DataFrame(
+        {
+            "status": ["for_sale", "for_sale"],
+            "price": [300000, 250000],
+            "bed": [3, 2],
+            "bath": [2, 1],
+            "acre_lot": [0.2, 0.1],
+            "city": ["Boston", "Cambridge"],
+            "state": ["Massachusetts", None],
+            "zip_code": ["02108", "02139"],
+            "house_size": [1500, 1200],
+            "prev_sold_date": [None, None],
+        }
+    )
+
+    # Act
+    result = transform(df)
+
+    # Assert
+    assert len(result) == 1
+    assert result["state"].isnull().sum() == 0

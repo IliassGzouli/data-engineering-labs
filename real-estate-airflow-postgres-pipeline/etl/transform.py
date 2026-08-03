@@ -29,8 +29,8 @@ def transform(df):
     ] 
 
     df = df[columns_to_keep]
-    df = df.dropna(subset=["price", "house_size"])
-    df = df.dropna(subset=["city", "zip_code"])
+    df = df.dropna(subset=["price", "house_size", "state", "city", "zip_code"])
+
 
     df = df[df["price"] > 0]
     df = df[df["house_size"] > 0]
