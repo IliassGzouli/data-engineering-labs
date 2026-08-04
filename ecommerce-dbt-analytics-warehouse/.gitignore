@@ -1,0 +1,20 @@
+# Raw and generated data
+data/raw/*
+data/bronze/*
+data/rejected/*
+data/quality_reports/*
+
+# Keep directory structure
+!data/raw/.gitkeep
+!data/bronze/.gitkeep
+!data/rejected/.gitkeep
+!data/quality_reports/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
