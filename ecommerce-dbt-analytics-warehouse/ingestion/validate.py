@@ -30,7 +30,7 @@ def validate_dataframe(
     )
 
     if dataframe.is_empty():
-        raise ValueError("DatFrame is empty")
+        raise ValueError("DataFrame is empty")
 
     missing_columns = required_columns - set(dataframe.columns)
     if missing_columns:
@@ -45,7 +45,7 @@ def validate_dataframe(
 
     if unknown_columns:
         unknown_names = ",".join(sorted(unknown_columns))
-        raise ValueError(f"validation columns not found: {unknown_names}")
+        raise ValueError(f"Validation columns not found: {unknown_names}")
     
     #vérifier les valeurs nulles
     for column in non_null_columns:
