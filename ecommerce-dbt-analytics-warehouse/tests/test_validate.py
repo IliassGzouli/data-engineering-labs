@@ -1,7 +1,7 @@
 import polars as pl
 import pytest
 
-from ingestion.validate import validate_dataframe
+from ingestion.validate import validate_dataframe, validate_dataset
 
 def test_validate_dataframe_accepts_valid_data():
     #arrange
@@ -134,4 +134,42 @@ def test_validate_dataframe_rejects_unknown_validation_column():
             dataframe=dataframe,
             required_columns={"order_id", "customer_id"},
             unique_columns=["orders_id"],
+        )
+
+
+def test_validate_dataset_uses_correct_schema():
+    #arrange
+    dataframe = pl.DataFrame(
+        {
+            "customer_id": ["customer_001"],
+            "customer_unique_id": ["unique_001"],
+            "customer_zip_code_prefix": [1000],
+            "customer_city": ["sao paulo"],
+            "customer_state": ["SP"],
+        }
+    )
+
+    #act 
+    result = validate_dataset(
+        dataframe=dataframe,
+        file_path="data/raw/olist_customers_dataset.csv",
+    )
+
+    #assert
+    assert result is None
+
+
+def test_validate_dataset_rejects_unknown_file():
+    #arrange
+    dataframe=pl.DataFrame(
+        {
+            "id": [1],
+        }
+    )
+
+    #act and assert
+    with pytest.raises(ValueError, match="No validation schema found for file: unknown.csv",):
+        validate_dataset(
+            dataframe=dataframe,
+            file_path="data/raw/unknown.csv",
         )

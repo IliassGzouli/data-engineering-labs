@@ -9,7 +9,7 @@ ORDERS_SCHEMA ={
         "order_delivered_customer_date",
         "order_estimated_delivery_date",
     },
-    "unique_columns": ["orders_id"],
+    "unique_columns": ["order_id"],
     "non_null_columns": [
         "order_id",
         "customer_id",

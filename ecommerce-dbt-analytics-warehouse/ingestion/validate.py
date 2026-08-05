@@ -1,5 +1,9 @@
 import logging
+from pathlib import Path
 import polars as pl
+
+from ingestion.schemas import DATASET_SCHEMAS
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,7 @@ def validate_dataframe(
     Raises:
         ValueError: If a quality rule is violated.
     """
+
 
     logger.info(
         "Starting validation: rows=%s, columns=%d",
@@ -74,4 +79,35 @@ def validate_dataframe(
                 f"for unique columns: {columns}"
             )
 
-    logger.info("Validation completd succesfully")
+    logger.info("Validation completed successfully")
+
+def validate_dataset(
+    dataframe: pl.DataFrame,
+    file_path: str | Path,
+) -> None:
+        
+    """
+    Validate a DataFrame using the schema associated
+    with its CSV filename.
+    """
+
+    filename = Path(file_path).name
+
+    schema = DATASET_SCHEMAS.get(filename)
+
+    if schema is None:
+        raise ValueError(
+            f"No validation schema found for file: {filename}"
+        )
+
+    logger.info(
+        "Using validation schema for file: %s",
+        filename,
+    )
+
+    validate_dataframe(
+        dataframe=dataframe,
+        required_columns=schema["required_columns"],
+        unique_columns=schema["unique_columns"],
+        non_null_columns=schema["non_null_columns"],
+    )

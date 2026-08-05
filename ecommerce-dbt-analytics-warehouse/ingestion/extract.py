@@ -47,7 +47,7 @@ def extract_csv(file_path: str | Path) -> pl.DataFrame:
         raise ValueError(f"CSV file contains no data rows: {path}")
 
     logger.info(
-        "Extraction completed: file=%s, roxs=%d, columns=%d",
+        "Extraction completed: file=%s, rows=%d, columns=%d",
         path.name,
         dataframe.height,
         dataframe.width,
