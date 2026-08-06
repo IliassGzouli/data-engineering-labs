@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ingestion.extract import extract_csv
 from ingestion.validate import validate_dataset
+from ingestion.load import load_to_bronze
 
 logging.basicConfig(
     level=logging.INFO,
@@ -11,12 +12,15 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def run_ingestion_pipeline(raw_data_dir: str | Path)-> None:
+def run_ingestion_pipeline(
+        raw_data_dir: str | Path,
+        bronze_data_dir: str | Path)-> None:
     """
-    Read and validate every CSV file from the raw data directory.
+    Extract, validate and load every CSV file into the Bronze layer.
     """
 
     raw_data_dir=Path(raw_data_dir)
+    bronze_data_dir=Path(bronze_data_dir)
 
     csv_files = sorted(
         raw_data_dir.glob("*.csv")
@@ -45,5 +49,19 @@ def run_ingestion_pipeline(raw_data_dir: str | Path)-> None:
             file_path.name,
         )
 
+        output_file_path = load_to_bronze(
+            dataframe=dataframe,
+            source_file_path=file_path,
+            bronze_data_dir=bronze_data_dir,
+        )
+
+        logger.info(
+            "File loaded succesfully into Bronze: %s",
+            output_file_path,
+        )
+
 if __name__ == "__main__":
-    run_ingestion_pipeline("data/raw")
+    run_ingestion_pipeline(
+        raw_data_dir="data/raw",
+        bronze_data_dir="data/bronze",
+        )
