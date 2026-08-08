@@ -2,7 +2,7 @@ import polars as pl
 
 from transformation.silver import transform_customers
 from transformation.pipeline import run_customers_silver_pipeline
-
+from transformation.pipeline import run_orders_silver_pipeline
 
 def test_transform_customers_formats_zip_code_prefix():
     dataframe = pl.DataFrame(
@@ -82,3 +82,91 @@ def test_run_customers_silver_pipeline_creates_transformed_file(tmp_path):
 
     assert output_file.exists()
     assert result["customer_zip_code_prefix"][0] == "09790"
+
+from transformation.silver import transform_orders
+
+
+def test_transform_orders_flags_delivered_order_with_missing_date():
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "customer_id": ["c1"],
+            "order_status": ["delivered"],
+            "order_purchase_timestamp": [None],
+            "order_approved_at": [None],
+            "order_delivered_carrier_date": [None],
+            "order_delivered_customer_date": [None],
+            "order_estimated_delivery_date": [None],
+        }
+    )
+
+    result = transform_orders(dataframe)
+
+    assert result["has_delivery_date_anomaly"][0] is True
+
+
+def test_transform_orders_does_not_flag_shipped_order_with_missing_customer_date():
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "customer_id": ["c1"],
+            "order_status": ["shipped"],
+            "order_purchase_timestamp": [None],
+            "order_approved_at": [None],
+            "order_delivered_carrier_date": [None],
+            "order_delivered_customer_date": [None],
+            "order_estimated_delivery_date": [None],
+        }
+    )
+
+    result = transform_orders(dataframe)
+
+    assert result["has_delivery_date_anomaly"][0] is False
+
+def test_transform_orders_does_not_flag_complete_delivered_order():
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "customer_id": ["c1"],
+            "order_status": ["delivered"],
+            "order_purchase_timestamp": [None],
+            "order_approved_at": ["2018-01-01"],
+            "order_delivered_carrier_date": ["2018-01-02"],
+            "order_delivered_customer_date": ["2018-01-05"],
+            "order_estimated_delivery_date": [None],
+        }
+    )
+
+    result = transform_orders(dataframe)
+
+    assert result["has_delivery_date_anomaly"][0] is False
+
+
+def test_run_orders_silver_pipeline_creates_transformed_file(tmp_path):
+    bronze_file = tmp_path / "olist_orders_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "customer_id": ["c1"],
+            "order_status": ["delivered"],
+            "order_purchase_timestamp": [None],
+            "order_approved_at": [None],
+            "order_delivered_carrier_date": [None],
+            "order_delivered_customer_date": [None],
+            "order_estimated_delivery_date": [None],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    output_file = run_orders_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    assert output_file.exists()
+    assert result["has_delivery_date_anomaly"][0] is True
