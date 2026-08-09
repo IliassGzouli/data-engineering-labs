@@ -43,3 +43,23 @@ def transform_order_payments(dataframe: pl.DataFrame) -> pl.DataFrame:
         (pl.col("payment_type") == "not_defined").alias("has_undefined_payment_type"),
     )
 
+def transform_products(dataframe: pl.DataFrame) -> pl.DataFrame:
+    """
+    Flag incomplete or invalid product records for the Silver layer.
+    """
+    return dataframe.with_columns(
+        pl.any_horizontal(
+            pl.col("product_category_name").is_null(),
+            pl.col("product_name_lenght").is_null(),
+            pl.col("product_description_lenght").is_null(),
+            pl.col("product_photos_qty").is_null(),
+        ).alias("has_missing_product_metadata"),
+
+        pl.any_horizontal(
+            pl.col("product_weight_g").is_null(),
+            pl.col("product_length_cm").is_null(),
+            pl.col("product_height_cm").is_null(),
+            pl.col("product_width_cm").is_null(),
+            pl.col("product_weight_g") <= 0,
+        ).alias("has_invalid_product_dimensions"),
+    ) 

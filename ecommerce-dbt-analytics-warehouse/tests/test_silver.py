@@ -1,10 +1,15 @@
 import polars as pl
 
-from transformation.silver import transform_customers, transform_order_items, transform_order_payments
+from transformation.silver import (transform_customers,
+            transform_order_items, 
+            transform_order_payments, 
+            transform_products)
 from transformation.pipeline import run_customers_silver_pipeline
 from transformation.pipeline import run_orders_silver_pipeline
 from transformation.pipeline import run_order_items_silver_pipeline
 from transformation.pipeline import run_order_payments_silver_pipeline
+from transformation.pipeline import run_products_silver_pipeline
+
 
 def test_transform_customers_formats_zip_code_prefix():
     dataframe = pl.DataFrame(
@@ -298,3 +303,86 @@ def test_run_order_payments_silver_pipeline_creates_transformed_file(tmp_path):
     assert output_file.exists()
     assert result["has_invalid_payment_value"][0] is True
     assert result["has_undefined_payment_type"][0] is True
+
+
+def test_transform_products_flags_invalid_product():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "product_id": ["p1"],
+            "product_category_name": [None],
+            "product_name_lenght": [None],
+            "product_description_lenght": [None],
+            "product_photos_qty": [None],
+            "product_weight_g": [0],
+            "product_length_cm": [30],
+            "product_height_cm": [20],
+            "product_width_cm": [10],
+        }
+    )
+
+    # Act
+    result = transform_products(dataframe)
+
+    # Assert
+    assert result["has_missing_product_metadata"][0] is True
+    assert result["has_invalid_product_dimensions"][0] is True
+
+
+def test_transform_products_does_not_flag_valid_product():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "product_id": ["p1"],
+            "product_category_name": ["beleza_saude"],
+            "product_name_lenght": [40],
+            "product_description_lenght": [300],
+            "product_photos_qty": [2],
+            "product_weight_g": [500],
+            "product_length_cm": [20],
+            "product_height_cm": [10],
+            "product_width_cm": [15],
+        }
+    )
+
+    # Act
+    result = transform_products(dataframe)
+
+    # Assert
+    assert result["has_missing_product_metadata"][0] is False
+    assert result["has_invalid_product_dimensions"][0] is False
+
+
+def test_run_products_silver_pipeline_creates_transformed_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "olist_products_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "product_id": ["p1"],
+            "product_category_name": [None],
+            "product_name_lenght": [None],
+            "product_description_lenght": [None],
+            "product_photos_qty": [None],
+            "product_weight_g": [0],
+            "product_length_cm": [30],
+            "product_height_cm": [20],
+            "product_width_cm": [10],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_products_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result["has_missing_product_metadata"][0] is True
+    assert result["has_invalid_product_dimensions"][0] is True
