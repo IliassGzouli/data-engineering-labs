@@ -81,3 +81,25 @@ def transform_order_reviews(dataframe: pl.DataFrame) -> pl.DataFrame:
         .is_duplicated()
         .alias("has_duplicate_review_id")
     )
+
+def transform_product_category_translation(
+    dataframe: pl.DataFrame,
+) -> pl.DataFrame:
+    """
+    Keep the clean product category translation dataset unchanged for Silver.
+    """
+    return dataframe
+
+def transform_geolocation(dataframe: pl.DataFrame) -> pl.DataFrame:
+    """
+    Standardize ZIP codes and remove exact duplicate geolocation rows.
+    """
+    return (
+        dataframe
+        .with_columns(
+            pl.col("geolocation_zip_code_prefix")
+            .cast(pl.String)
+            .str.pad_start(5, "0")
+        )
+        .unique()
+    )

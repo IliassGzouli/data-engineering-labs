@@ -5,7 +5,9 @@ from transformation.silver import (transform_customers,
             transform_order_payments, 
             transform_products,
             transform_sellers,
-            transform_order_reviews)
+            transform_order_reviews,
+            transform_product_category_translation,
+            transform_geolocation)
 from transformation.pipeline import run_customers_silver_pipeline
 from transformation.pipeline import run_orders_silver_pipeline
 from transformation.pipeline import run_order_items_silver_pipeline
@@ -13,6 +15,8 @@ from transformation.pipeline import run_order_payments_silver_pipeline
 from transformation.pipeline import run_products_silver_pipeline
 from transformation.pipeline import run_sellers_silver_pipeline
 from transformation.pipeline import run_order_reviews_silver_pipeline
+from transformation.pipeline import run_product_category_translation_silver_pipeline
+from transformation.pipeline import run_geolocation_silver_pipeline
 
 def test_transform_customers_formats_zip_code_prefix():
     dataframe = pl.DataFrame(
@@ -527,3 +531,115 @@ def test_run_order_reviews_silver_pipeline_creates_transformed_file(tmp_path):
     # Assert
     assert output_file.exists()
     assert result["has_duplicate_review_id"].to_list() == [True, True]
+
+
+def test_transform_product_category_translation_keeps_clean_data():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "product_category_name": ["beleza_saude"],
+            "product_category_name_english": ["health_beauty"],
+        }
+    )
+
+    # Act
+    result = transform_product_category_translation(dataframe)
+
+    # Assert
+    assert result.equals(dataframe)
+
+
+def test_run_product_category_translation_silver_pipeline_creates_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "product_category_name_translation.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "product_category_name": ["beleza_saude"],
+            "product_category_name_english": ["health_beauty"],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_product_category_translation_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result.equals(dataframe)
+
+
+def test_transform_geolocation_formats_zip_code_prefix():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "geolocation_zip_code_prefix": [1037],
+            "geolocation_lat": [-23.545621],
+            "geolocation_lng": [-46.639292],
+            "geolocation_city": ["sao paulo"],
+            "geolocation_state": ["SP"],
+        }
+    )
+
+    # Act
+    result = transform_geolocation(dataframe)
+
+    # Assert
+    assert result["geolocation_zip_code_prefix"][0] == "01037"
+
+
+def test_transform_geolocation_removes_exact_duplicates():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "geolocation_zip_code_prefix": [1037, 1037],
+            "geolocation_lat": [-23.545621, -23.545621],
+            "geolocation_lng": [-46.639292, -46.639292],
+            "geolocation_city": ["sao paulo", "sao paulo"],
+            "geolocation_state": ["SP", "SP"],
+        }
+    )
+
+    # Act
+    result = transform_geolocation(dataframe)
+
+    # Assert
+    assert result.height == 1
+
+
+def test_run_geolocation_silver_pipeline_creates_transformed_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "olist_geolocation_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "geolocation_zip_code_prefix": [1037, 1037],
+            "geolocation_lat": [-23.545621, -23.545621],
+            "geolocation_lng": [-46.639292, -46.639292],
+            "geolocation_city": ["sao paulo", "sao paulo"],
+            "geolocation_state": ["SP", "SP"],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_geolocation_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result.height == 1
+    assert result["geolocation_zip_code_prefix"][0] == "01037"

@@ -8,7 +8,9 @@ from transformation.silver import (
     transform_order_payments,
     transform_products,
     transform_sellers,
-    transform_order_reviews)
+    transform_order_reviews,
+    transform_product_category_translation,
+    transform_geolocation)
 from transformation.load import load_to_silver
 
 def run_customers_silver_pipeline(
@@ -145,6 +147,48 @@ def run_order_reviews_silver_pipeline(
     dataframe = pl.read_parquet(bronze_file_path)
 
     transformed_dataframe = transform_order_reviews(dataframe)
+
+    return load_to_silver(
+        dataframe=transformed_dataframe,
+        source_file_path=bronze_file_path,
+        silver_data_dir=silver_data_dir,
+    )
+
+
+def run_product_category_translation_silver_pipeline(
+    bronze_file_path: str | Path,
+    silver_data_dir: str | Path,
+) -> Path:
+    """
+    Read the Bronze product category translation dataset,
+    transform it, and load it into Silver.
+    """
+    bronze_file_path = Path(bronze_file_path)
+    silver_data_dir = Path(silver_data_dir)
+
+    dataframe = pl.read_parquet(bronze_file_path)
+
+    transformed_dataframe = transform_product_category_translation(dataframe)
+
+    return load_to_silver(
+        dataframe=transformed_dataframe,
+        source_file_path=bronze_file_path,
+        silver_data_dir=silver_data_dir,
+    )
+
+def run_geolocation_silver_pipeline(
+    bronze_file_path: str | Path,
+    silver_data_dir: str | Path,
+) -> Path:
+    """
+    Read the Bronze geolocation dataset, transform it, and load it into Silver.
+    """
+    bronze_file_path = Path(bronze_file_path)
+    silver_data_dir = Path(silver_data_dir)
+
+    dataframe = pl.read_parquet(bronze_file_path)
+
+    transformed_dataframe = transform_geolocation(dataframe)
 
     return load_to_silver(
         dataframe=transformed_dataframe,
