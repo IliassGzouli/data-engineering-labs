@@ -71,3 +71,13 @@ def transform_sellers(dataframe: pl.DataFrame) -> pl.DataFrame:
     return dataframe.with_columns(
         pl.col("seller_zip_code_prefix").cast(pl.String).str.pad_start(5, "0")   
     )  
+
+def transform_order_reviews(dataframe: pl.DataFrame) -> pl.DataFrame:
+    """
+    Flag duplicated review IDs for the Silver layer.
+    """
+    return dataframe.with_columns(
+        pl.col("review_id")
+        .is_duplicated()
+        .alias("has_duplicate_review_id")
+    )

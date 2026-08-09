@@ -4,14 +4,15 @@ from transformation.silver import (transform_customers,
             transform_order_items, 
             transform_order_payments, 
             transform_products,
-            transform_sellers)
+            transform_sellers,
+            transform_order_reviews)
 from transformation.pipeline import run_customers_silver_pipeline
 from transformation.pipeline import run_orders_silver_pipeline
 from transformation.pipeline import run_order_items_silver_pipeline
 from transformation.pipeline import run_order_payments_silver_pipeline
 from transformation.pipeline import run_products_silver_pipeline
 from transformation.pipeline import run_sellers_silver_pipeline
-
+from transformation.pipeline import run_order_reviews_silver_pipeline
 
 def test_transform_customers_formats_zip_code_prefix():
     dataframe = pl.DataFrame(
@@ -452,3 +453,77 @@ def test_run_sellers_silver_pipeline_creates_transformed_file(tmp_path):
     # Assert
     assert output_file.exists()
     assert result["seller_zip_code_prefix"][0] == "01001"
+
+
+def test_transform_order_reviews_flags_duplicate_review_id():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "review_id": ["r1", "r1"],
+            "order_id": ["o1", "o2"],
+            "review_score": [5, 5],
+            "review_comment_title": [None, None],
+            "review_comment_message": ["Great", "Great"],
+            "review_creation_date": [None, None],
+            "review_answer_timestamp": [None, None],
+        }
+    )
+
+    # Act
+    result = transform_order_reviews(dataframe)
+
+    # Assert
+    assert result["has_duplicate_review_id"].to_list() == [True, True]
+
+
+def test_transform_order_reviews_does_not_flag_unique_review_id():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "review_id": ["r1", "r2"],
+            "order_id": ["o1", "o2"],
+            "review_score": [5, 4],
+            "review_comment_title": [None, None],
+            "review_comment_message": ["Great", "Good"],
+            "review_creation_date": [None, None],
+            "review_answer_timestamp": [None, None],
+        }
+    )
+
+    # Act
+    result = transform_order_reviews(dataframe)
+
+    # Assert
+    assert result["has_duplicate_review_id"].to_list() == [False, False]
+
+
+def test_run_order_reviews_silver_pipeline_creates_transformed_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "olist_order_reviews_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "review_id": ["r1", "r1"],
+            "order_id": ["o1", "o2"],
+            "review_score": [5, 5],
+            "review_comment_title": [None, None],
+            "review_comment_message": ["Great", "Great"],
+            "review_creation_date": [None, None],
+            "review_answer_timestamp": [None, None],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_order_reviews_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result["has_duplicate_review_id"].to_list() == [True, True]
