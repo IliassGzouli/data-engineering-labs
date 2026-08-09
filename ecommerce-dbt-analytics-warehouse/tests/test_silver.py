@@ -3,6 +3,7 @@ import polars as pl
 from transformation.silver import transform_customers
 from transformation.pipeline import run_customers_silver_pipeline
 from transformation.pipeline import run_orders_silver_pipeline
+from transformation.pipeline import run_order_items_silver_pipeline
 
 def test_transform_customers_formats_zip_code_prefix():
     dataframe = pl.DataFrame(
@@ -170,3 +171,58 @@ def test_run_orders_silver_pipeline_creates_transformed_file(tmp_path):
 
     assert output_file.exists()
     assert result["has_delivery_date_anomaly"][0] is True
+
+from transformation.silver import transform_order_items
+
+
+def test_transform_order_items_calculates_item_total_value():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "order_item_id": [1],
+            "product_id": ["p1"],
+            "seller_id": ["s1"],
+            "shipping_limit_date": [None],
+            "price": [100.0],
+            "freight_value": [20.0],
+        }
+    )
+
+    # Act
+    result = transform_order_items(dataframe)
+
+    # Assert
+    assert result["item_total_value"][0] == 120.0
+
+
+def test_run_order_items_silver_pipeline_creates_transformed_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "olist_order_items_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "order_item_id": [1],
+            "product_id": ["p1"],
+            "seller_id": ["s1"],
+            "shipping_limit_date": [None],
+            "price": [100.0],
+            "freight_value": [20.0],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_order_items_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result["item_total_value"][0] == 120.0

@@ -23,3 +23,12 @@ def transform_orders(dataframe: pl.DataFrame) -> pl.DataFrame:
             )
         ).alias("has_delivery_date_anomaly")
     )
+
+
+def transform_order_items(dataframe: pl.DataFrame) -> pl.DataFrame:
+    """
+    Enrich the order items dataset for the Silver layer.
+    """
+    return dataframe.with_columns(
+        (pl.col("price") + pl.col("freight_value")).alias("item_total_value")
+    )
