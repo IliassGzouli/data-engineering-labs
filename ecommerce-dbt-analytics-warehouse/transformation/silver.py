@@ -63,3 +63,11 @@ def transform_products(dataframe: pl.DataFrame) -> pl.DataFrame:
             pl.col("product_weight_g") <= 0,
         ).alias("has_invalid_product_dimensions"),
     ) 
+
+def transform_sellers(dataframe: pl.DataFrame) -> pl.DataFrame:
+    """
+    Standardize seller ZIP code prefixes for the Silver layer.
+    """
+    return dataframe.with_columns(
+        pl.col("seller_zip_code_prefix").cast(pl.String).str.pad_start(5, "0")   
+    )  

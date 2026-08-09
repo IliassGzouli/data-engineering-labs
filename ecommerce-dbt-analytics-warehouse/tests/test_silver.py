@@ -3,12 +3,14 @@ import polars as pl
 from transformation.silver import (transform_customers,
             transform_order_items, 
             transform_order_payments, 
-            transform_products)
+            transform_products,
+            transform_sellers)
 from transformation.pipeline import run_customers_silver_pipeline
 from transformation.pipeline import run_orders_silver_pipeline
 from transformation.pipeline import run_order_items_silver_pipeline
 from transformation.pipeline import run_order_payments_silver_pipeline
 from transformation.pipeline import run_products_silver_pipeline
+from transformation.pipeline import run_sellers_silver_pipeline
 
 
 def test_transform_customers_formats_zip_code_prefix():
@@ -386,3 +388,67 @@ def test_run_products_silver_pipeline_creates_transformed_file(tmp_path):
     assert output_file.exists()
     assert result["has_missing_product_metadata"][0] is True
     assert result["has_invalid_product_dimensions"][0] is True
+
+
+def test_transform_sellers_formats_zip_code_prefix():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "seller_id": ["s1"],
+            "seller_zip_code_prefix": [1001],
+            "seller_city": ["sao paulo"],
+            "seller_state": ["SP"],
+        }
+    )
+
+    # Act
+    result = transform_sellers(dataframe)
+
+    # Assert
+    assert result["seller_zip_code_prefix"][0] == "01001"
+
+def test_transform_sellers_keeps_five_digit_zip_code_prefix():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "seller_id": ["s1"],
+            "seller_zip_code_prefix": [13023],
+            "seller_city": ["campinas"],
+            "seller_state": ["SP"],
+        }
+    )
+
+    # Act
+    result = transform_sellers(dataframe)
+
+    # Assert
+    assert result["seller_zip_code_prefix"][0] == "13023"
+
+
+def test_run_sellers_silver_pipeline_creates_transformed_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "olist_sellers_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "seller_id": ["s1"],
+            "seller_zip_code_prefix": [1001],
+            "seller_city": ["sao paulo"],
+            "seller_state": ["SP"],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_sellers_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result["seller_zip_code_prefix"][0] == "01001"
