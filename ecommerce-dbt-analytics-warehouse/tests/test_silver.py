@@ -1,9 +1,10 @@
 import polars as pl
 
-from transformation.silver import transform_customers
+from transformation.silver import transform_customers, transform_order_items, transform_order_payments
 from transformation.pipeline import run_customers_silver_pipeline
 from transformation.pipeline import run_orders_silver_pipeline
 from transformation.pipeline import run_order_items_silver_pipeline
+from transformation.pipeline import run_order_payments_silver_pipeline
 
 def test_transform_customers_formats_zip_code_prefix():
     dataframe = pl.DataFrame(
@@ -226,3 +227,74 @@ def test_run_order_items_silver_pipeline_creates_transformed_file(tmp_path):
     # Assert
     assert output_file.exists()
     assert result["item_total_value"][0] == 120.0
+
+
+def test_transform_order_payments_flags_invalid_payment():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "payment_sequential": [1],
+            "payment_type": ["not_defined"],
+            "payment_installments": [1],
+            "payment_value": [0.0],
+        }
+    )
+
+    # Act
+    result = transform_order_payments(dataframe)
+
+    # Assert
+    assert result["has_invalid_payment_value"][0] is True
+    assert result["has_undefined_payment_type"][0] is True
+
+
+def test_transform_order_payments_does_not_flag_valid_payment():
+    # Arrange
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "payment_sequential": [1],
+            "payment_type": ["credit_card"],
+            "payment_installments": [2],
+            "payment_value": [100.0],
+        }
+    )
+
+    # Act
+    result = transform_order_payments(dataframe)
+
+    # Assert
+    assert result["has_invalid_payment_value"][0] is False
+    assert result["has_undefined_payment_type"][0] is False
+
+
+def test_run_order_payments_silver_pipeline_creates_transformed_file(tmp_path):
+    # Arrange
+    bronze_file = tmp_path / "olist_order_payments_dataset.parquet"
+    silver_dir = tmp_path / "silver"
+
+    dataframe = pl.DataFrame(
+        {
+            "order_id": ["o1"],
+            "payment_sequential": [1],
+            "payment_type": ["not_defined"],
+            "payment_installments": [1],
+            "payment_value": [0.0],
+        }
+    )
+
+    dataframe.write_parquet(bronze_file)
+
+    # Act
+    output_file = run_order_payments_silver_pipeline(
+        bronze_file_path=bronze_file,
+        silver_data_dir=silver_dir,
+    )
+
+    result = pl.read_parquet(output_file)
+
+    # Assert
+    assert output_file.exists()
+    assert result["has_invalid_payment_value"][0] is True
+    assert result["has_undefined_payment_type"][0] is True

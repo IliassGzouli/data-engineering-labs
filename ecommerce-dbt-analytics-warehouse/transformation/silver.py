@@ -32,3 +32,14 @@ def transform_order_items(dataframe: pl.DataFrame) -> pl.DataFrame:
     return dataframe.with_columns(
         (pl.col("price") + pl.col("freight_value")).alias("item_total_value")
     )
+
+
+def transform_order_payments(dataframe: pl.DataFrame) -> pl.DataFrame:
+    """
+    Flag suspicious payment records for the Silver layer.
+    """
+    return dataframe.with_columns(
+        (pl.col("payment_value") <= 0).alias("has_invalid_payment_value"),
+        (pl.col("payment_type") == "not_defined").alias("has_undefined_payment_type"),
+    )
+
