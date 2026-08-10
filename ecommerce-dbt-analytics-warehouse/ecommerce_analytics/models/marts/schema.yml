@@ -2,19 +2,55 @@ version: 2
 
 models:
   - name: dim_customers
+    description: "Dimension contenant les informations principales des clients."
     columns:
       - name: customer_id
+        description: "Identifiant unique du client associé à une commande."
         tests:
           - not_null
           - unique
 
       - name: customer_unique_id
+        description: "Identifiant unique permettant de reconnaître un même client à travers plusieurs commandes."
         tests:
           - not_null
 
+      - name: customer_zip_code_prefix
+        description: "Préfixe du code postal du client."
+
+      - name: customer_city
+        description: "Ville du client."
+
+      - name: customer_state
+        description: "État du client."
+
   - name: fct_orders
+    description: "Table de faits contenant une ligne par commande avec les principaux indicateurs financiers et logistiques."
     columns:
       - name: order_id
+        description: "Identifiant unique de la commande."
         tests:
           - not_null
           - unique
+
+      - name: customer_id
+        description: "Identifiant du client ayant passé la commande."
+        tests:
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+
+      - name: order_status
+        description: "Statut de la commande."
+
+      - name: item_count
+        description: "Nombre d'articles présents dans la commande."
+
+      - name: products_value
+        description: "Valeur totale des produits de la commande, hors frais de livraison."
+
+      - name: freight_value
+        description: "Montant total des frais de livraison."
+
+      - name: order_total_value
+        description: "Valeur totale de la commande, incluant les produits et les frais de livraison."
