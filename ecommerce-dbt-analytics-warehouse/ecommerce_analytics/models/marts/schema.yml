@@ -76,3 +76,40 @@ models:
 
       - name: order_total_value
         description: "Valeur totale de la commande, incluant les produits et les frais de livraison."
+
+
+  - name: fct_order_items
+    description: "Table de faits contenant une ligne par article de commande avec les informations de prix et de livraison."
+
+    columns:
+      - name: order_id
+        description: "Identifiant de la commande."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+
+      - name: order_item_id
+        description: "Numéro de l'article dans la commande."
+        tests:
+          - not_null
+
+      - name: product_id
+        description: "Identifiant du produit."
+
+      - name: seller_id
+        description: "Identifiant du vendeur."
+
+      - name: shipping_limit_date
+        description: "Date limite d'expédition de l'article."
+
+      - name: price
+        description: "Prix de l'article."
+
+      - name: freight_value
+        description: "Montant des frais de livraison."
+
+      - name: item_total_value
+        description: "Valeur totale de l'article, calculée comme price + freight_value."
