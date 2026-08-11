@@ -2,15 +2,16 @@
 
 Pipeline Data Engineering et Analytics Warehouse construit à partir du **Brazilian E-Commerce Public Dataset by Olist**.
 
-Le projet transforme progressivement les données sources CSV en données analytiques structurées selon une architecture **Raw -> Bronze -> Silver -> Gold**. Le socle d’ingestion Bronze est terminé ; la couche Silver est actuellement en cours de développement.
+Le projet transforme progressivement les données sources CSV en données analytiques structurées selon une architecture **Raw -> Bronze -> Silver -> Gold**. Le socle d’ingestion Bronze est terminé, trois pipelines Silver sont disponibles et une première couche Gold est construite avec DuckDB et dbt Core.
 
 ## Objectifs du projet
 
 - Construire un pipeline de données reproductible et testable.
 - Fiabiliser les données Olist grâce à des contrôles de qualité génériques.
 - Standardiser les datasets dans des fichiers Parquet organisés par couche.
-- Préparer une architecture analytique exploitable avec DuckDB, dbt Core et Metabase.
-- Produire à terme des marts Gold documentés et adaptés à l’analyse métier.
+- Construire une architecture analytique locale avec DuckDB et dbt Core.
+- Produire des marts Gold documentés et adaptés à l’analyse métier.
+- Préparer la future visualisation des données avec Metabase.
 
 ## Architecture
 
@@ -18,7 +19,7 @@ Le projet transforme progressivement les données sources CSV en données analyt
 data/raw/                    Fichiers CSV Olist
 	|
 	v
-Ingestion: extraction + validation
+Ingestion Polars : extraction + validation
 	|
 	v
 data/bronze/                 Données validées au format Parquet
@@ -30,13 +31,16 @@ Transformation Silver
 data/silver/                 Données nettoyées et enrichies
 	|
 	v
-Gold / marts analytiques     À construire avec dbt Core
+DuckDB + dbt staging         Modèles intermédiaires matérialisés en vues
+	|
+	v
+dbt marts / Gold             Modèles analytiques matérialisés en tables
 	|
 	v
 Metabase                     À connecter
 ```
 
-La stack cible comprend Python, Polars, Parquet, DuckDB, dbt Core, pytest, les tests dbt, Docker, GitHub Actions et Metabase. À ce stade, seuls Python, Polars, Parquet et pytest sont utilisés dans le code actuel ; les autres composants restent à intégrer.
+La stack actuelle comprend Python, Polars, Parquet, pytest, DuckDB, dbt Core et `dbt-duckdb`. Metabase, Docker et GitHub Actions font partie des prochaines étapes.
 
 ## État actuel du projet
 
@@ -49,24 +53,27 @@ La stack cible comprend Python, Polars, Parquet, DuckDB, dbt Core, pytest, les t
 - Contrôles des colonnes requises, des valeurs nulles et de l’unicité.
 - Pipeline d’ingestion Raw -> Bronze.
 - Écriture des 9 datasets au format Parquet dans `data/bronze/`.
-- Tests pytest pour l’extraction, la validation, le chargement et les transformations déjà disponibles.
-- Pipeline Bronze -> Silver pour `customers`.
-- Pipeline Bronze -> Silver pour `orders`.
-- Génération des fichiers Parquet Silver pour `customers` et `orders`.
+- Tests pytest pour l’ingestion et les transformations Python disponibles.
+- Pipelines Bronze -> Silver pour `customers`, `orders` et `order_items`.
+- Génération des trois fichiers Parquet Silver correspondants.
 - Détection de 23 anomalies réelles de dates de livraison dans les données `orders`.
+- Intégration de DuckDB comme moteur analytique local.
+- Configuration de dbt Core avec `dbt-duckdb` dans `ecommerce_analytics/`.
+- Création de trois modèles staging matérialisés en vues.
+- Création de deux marts Gold matérialisés en tables.
+- Documentation des modèles Gold et de leurs principales colonnes.
+- Mise en place de cinq tests dbt, tous passants (`PASS=5`, `ERROR=0`).
 
 ### En cours
 
 - Développement des transformations Silver des autres datasets Olist.
 - Généralisation du pipeline Bronze -> Silver à l’ensemble des datasets.
-- Structuration des quality reports et du traitement des données rejetées.
+- Structuration des `quality_reports` et du traitement des données rejetées.
+- Enrichissement progressif de la couche Gold avec de nouveaux marts.
 
 ### À venir
 
-- Intégration de DuckDB.
-- Initialisation de dbt Core.
-- Construction des modèles dbt et de la couche Gold.
-- Ajout des tests et de la documentation dbt.
+- Ajout de tests dbt supplémentaires, notamment des tests `relationships`.
 - Connexion de Metabase.
 - Dockerisation du projet.
 - Mise en place de GitHub Actions.
@@ -75,10 +82,10 @@ La stack cible comprend Python, Polars, Parquet, DuckDB, dbt Core, pytest, les t
 
 | Couche | Emplacement | Rôle | État |
 | --- | --- | --- | --- |
-| Raw | `data/raw/` | Données CSV originales provenant d’Olist | Disponible |
-| Bronze | `data/bronze/` | Données extraites, validées et stockées en Parquet | Terminé |
-| Silver | `data/silver/` | Données nettoyées, standardisées et enrichies | En cours |
-| Gold | À définir | Marts analytiques prêts pour la consommation métier | À venir |
+| Raw | `data/raw/` | Données CSV originales provenant d’Olist | Disponible : 9 datasets |
+| Bronze | `data/bronze/` | Données extraites, validées et stockées en Parquet | Terminé : 9 datasets |
+| Silver | `data/silver/` | Données nettoyées, standardisées et enrichies | Partiel : `customers`, `orders`, `order_items` |
+| Gold | `ecommerce_analytics/models/marts/` | Marts analytiques construits avec dbt dans DuckDB | Disponible : `dim_customers`, `fct_orders` |
 
 Les répertoires `data/quality_reports/` et `data/rejected/` sont prévus pour les rapports de qualité et les données rejetées. Leur traitement complet reste à implémenter.
 
@@ -101,43 +108,111 @@ Lorsqu’une validation échoue, le pipeline signale l’erreur. L’isolement a
 
 La transformation `transform_customers` convertit `customer_zip_code_prefix` en chaîne de caractères et complète la valeur à gauche afin d’obtenir cinq caractères. Les zéros initiaux sont ainsi conservés.
 
-Le pipeline associé lit le Parquet Bronze, applique la transformation et écrit le résultat dans `data/silver/`.
-
 ### `orders`
 
 La transformation `transform_orders` ajoute le champ booléen `has_delivery_date_anomaly`.
 
-Ce flag est activé lorsqu’une commande est au statut `delivered` et qu’au moins une des dates suivantes est manquante :
+Ce flag vaut `true` lorsqu’une commande au statut `delivered` présente au moins une des dates importantes suivantes manquante :
 
 - `order_approved_at` ;
 - `order_delivered_carrier_date` ;
 - `order_delivered_customer_date`.
 
-Les autres datasets ne disposent pas encore de transformation Silver dédiée.
+Cette règle a permis de détecter 23 anomalies réelles dans le dataset.
+
+### `order_items`
+
+La transformation `transform_order_items` ajoute la colonne `item_total_value`, calculée selon la formule suivante :
+
+```text
+item_total_value = price + freight_value
+```
+
+Chaque pipeline lit le Parquet Bronze correspondant, applique sa transformation et écrit le résultat dans `data/silver/`.
+
+## DuckDB et dbt
+
+DuckDB est utilisé comme moteur analytique local. Le projet dbt est configuré dans `ecommerce_analytics/` avec l’adaptateur `dbt-duckdb`.
+
+La couche dbt est organisée en deux niveaux :
+
+- `staging`, matérialisé en vues, prépare les données Silver pour les transformations analytiques ;
+- `marts`, matérialisé en tables, constitue la couche Gold destinée à l’analyse métier.
+
+### Modèles staging
+
+- `stg_customers`
+- `stg_orders`
+- `stg_order_items`
+
+### Modèles marts / Gold
+
+#### `dim_customers`
+
+Dimension construite à partir de `stg_customers`. Elle contient notamment :
+
+- `customer_id`
+- `customer_unique_id`
+- `customer_zip_code_prefix`
+- `customer_city`
+- `customer_state`
+
+#### `fct_orders`
+
+Table de faits construite à partir de `stg_orders` et `stg_order_items`. Elle contient notamment :
+
+- `order_id`
+- `customer_id`
+- `order_status`
+- les dates de commande, d’approbation et de livraison
+- `has_delivery_date_anomaly`
+- `item_count`
+- `products_value`
+- `freight_value`
+- `order_total_value`
+
+## Tests dbt
+
+Les tests dbt sont déclarés dans `ecommerce_analytics/models/marts/schema.yml` :
+
+| Modèle | Colonne | Tests |
+| --- | --- | --- |
+| `dim_customers` | `customer_id` | `not_null`, `unique` |
+| `dim_customers` | `customer_unique_id` | `not_null` |
+| `fct_orders` | `order_id` | `not_null`, `unique` |
+
+Le résultat actuel est de cinq tests réussis : `PASS=5`, `ERROR=0`.
+
+Le fichier `schema.yml` documente également les modèles Gold et leurs principales colonnes. La documentation et le lineage peuvent être générés et consultés avec `dbt docs generate` puis `dbt docs serve`.
 
 ## Structure du projet
 
 ```text
 .
 ├── data/
-│   ├── raw/                 # CSV sources Olist
-│   ├── bronze/              # Parquet validés
-│   ├── silver/              # Parquet transformés
-│   ├── quality_reports/     # Rapports qualité à venir
-│   └── rejected/            # Données rejetées à venir
+│   ├── raw/                         # 9 CSV sources Olist
+│   ├── bronze/                      # 9 Parquet validés
+│   ├── silver/                      # Parquet transformés
+│   ├── quality_reports/             # Rapports qualité à finaliser
+│   └── rejected/                    # Traitement à implémenter
 ├── ingestion/
-│   ├── extract.py           # Extraction CSV avec Polars
-│   ├── validate.py          # Validation générique
-│   ├── schemas.py           # Schémas des 9 datasets
-│   ├── load.py              # Chargement vers Bronze
-│   └── pipeline.py          # Pipeline Raw -> Bronze
+│   ├── extract.py                   # Extraction CSV avec Polars
+│   ├── validate.py                  # Validation générique
+│   ├── schemas.py                   # Schémas des 9 datasets
+│   ├── load.py                      # Chargement vers Bronze
+│   └── pipeline.py                  # Pipeline Raw -> Bronze
 ├── transformation/
-│   ├── silver.py            # Transformations Silver
-│   ├── load.py              # Chargement vers Silver
-│   └── pipeline.py          # Pipelines Silver disponibles
-├── tests/                   # Tests pytest
-├── dashboards/              # Espace réservé aux dashboards
-├── requirements.txt         # Dépendances actuelles
+│   ├── silver.py                    # Transformations Silver
+│   ├── load.py                      # Chargement vers Silver
+│   └── pipeline.py                  # Pipelines Bronze -> Silver
+├── ecommerce_analytics/             # Projet dbt et base DuckDB locale
+│   ├── models/
+│   │   ├── staging/                 # Modèles staging matérialisés en vues
+│   │   └── marts/                   # Modèles Gold matérialisés en tables
+│   └── dbt_project.yml              # Configuration du projet dbt
+├── tests/                           # Tests pytest
+├── dashboards/                      # Espace réservé aux dashboards
+├── requirements.txt                 # Dépendances Python
 └── README.md
 ```
 
@@ -152,6 +227,7 @@ cd ecommerce-dbt-analytics-warehouse
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install dbt-core dbt-duckdb
 ```
 
 Sous Windows, l’activation de l’environnement virtuel peut être effectuée avec :
@@ -159,8 +235,6 @@ Sous Windows, l’activation de l’environnement virtuel peut être effectuée 
 ```powershell
 .venv\Scripts\activate
 ```
-
-Les dépendances actuellement déclarées sont limitées à Polars. DuckDB, dbt Core, Docker et Metabase ne sont pas encore configurés dans le projet.
 
 ## Lancer l’ingestion Bronze
 
@@ -174,12 +248,13 @@ La commande lit les fichiers CSV de `data/raw/`, applique le schéma corresponda
 
 ## Lancer les pipelines Silver disponibles
 
-Les pipelines `customers` et `orders` peuvent être exécutés depuis Python :
+Les pipelines `customers`, `orders` et `order_items` peuvent être exécutés depuis Python :
 
 ```python
 from transformation.pipeline import (
     run_customers_silver_pipeline,
     run_orders_silver_pipeline,
+    run_order_items_silver_pipeline,
 )
 
 run_customers_silver_pipeline(
@@ -191,41 +266,62 @@ run_orders_silver_pipeline(
     bronze_file_path="data/bronze/olist_orders_dataset.parquet",
     silver_data_dir="data/silver",
 )
+
+run_order_items_silver_pipeline(
+    bronze_file_path="data/bronze/olist_order_items_dataset.parquet",
+    silver_data_dir="data/silver",
+)
 ```
 
-## Tests
+## Exécuter dbt
 
-Pour exécuter l’ensemble des tests :
+Depuis le répertoire du projet dbt :
+
+```bash
+cd ecommerce_analytics
+dbt run
+dbt test
+```
+
+Pour générer puis consulter la documentation et le lineage :
+
+```bash
+dbt docs generate
+dbt docs serve
+```
+
+## Tests Python
+
+Pour exécuter l’ensemble des tests pytest depuis la racine du projet :
 
 ```bash
 pytest -q
 ```
 
-Les tests couvrent notamment l’extraction de fichiers CSV, les erreurs de format et de contenu, les règles de validation, l’écriture Parquet et les transformations Silver de `customers` et `orders`.
+Les tests Python couvrent notamment l’extraction de fichiers CSV, les erreurs de format et de contenu, les règles de validation, l’écriture Parquet et les transformations Silver.
 
 ## Roadmap
 
-1. Terminer les transformations Silver des datasets restants.
+1. Terminer les transformations Silver des autres datasets Olist.
 2. Généraliser le pipeline Bronze -> Silver.
-3. Finaliser les `quality_reports` et le traitement de `rejected`.
-4. Intégrer DuckDB.
-5. Initialiser dbt Core.
-6. Construire les modèles dbt et la couche Gold.
-7. Ajouter les tests et la documentation dbt.
-8. Connecter Metabase.
-9. Dockeriser le projet.
-10. Ajouter GitHub Actions.
+3. Finaliser les `quality_reports`.
+4. Implémenter le traitement de `data/rejected/`.
+5. Enrichir la couche Gold avec d’autres marts.
+6. Ajouter des tests dbt supplémentaires, notamment des tests `relationships`.
+7. Connecter Metabase.
+8. Dockeriser le projet.
+9. Ajouter GitHub Actions.
 
 ## Limites actuelles
 
-- La couche Silver est partielle et ne couvre que `customers` et `orders`.
+- La couche Silver officiellement disponible est partielle et couvre `customers`, `orders` et `order_items`.
 - Le pipeline Bronze -> Silver n’est pas encore généralisé à tous les datasets.
-- DuckDB n’est pas encore intégré.
-- dbt Core n’est pas encore initialisé.
-- La couche Gold et les marts analytiques ne sont pas encore construits.
+- La couche Gold est limitée à `dim_customers` et `fct_orders`.
+- Les tests dbt ne couvrent pas encore les relations entre les modèles.
+- Les `quality_reports` ne sont pas finalisés.
+- Les fichiers ou lignes invalides ne sont pas encore isolés automatiquement dans `data/rejected/`.
 - Metabase n’est pas encore connecté.
 - Docker et GitHub Actions ne sont pas encore implémentés.
-- Les fichiers ou lignes invalides ne sont pas encore isolés automatiquement dans `data/rejected/`.
 
 ## Données Olist
 
