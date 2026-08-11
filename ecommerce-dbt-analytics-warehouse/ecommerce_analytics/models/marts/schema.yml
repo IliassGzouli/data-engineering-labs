@@ -38,6 +38,11 @@ models:
 
       - name: customer_id
         description: "Identifiant du client ayant passé la commande."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
 
       - name: order_status
         description: "Statut actuel de la commande."
