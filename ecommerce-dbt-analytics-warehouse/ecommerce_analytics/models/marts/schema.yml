@@ -254,3 +254,25 @@ models:
 
       - name: has_duplicate_review_id
         description: "Indique si l'identifiant de l'avis est présent plusieurs fois dans le dataset."
+
+  - name: dim_geolocation
+    description: "Dimension géographique contenant une ligne par préfixe de code postal avec des coordonnées moyennes et la ville et l'État les plus fréquents."
+
+    columns:
+      - name: geolocation_zip_code_prefix
+        description: "Préfixe du code postal identifiant la zone géographique."
+        tests:
+          - not_null
+          - unique
+
+      - name: geolocation_lat
+        description: "Latitude moyenne associée au préfixe du code postal."
+
+      - name: geolocation_lng
+        description: "Longitude moyenne associée au préfixe du code postal."
+
+      - name: geolocation_city
+        description: "Ville la plus fréquemment associée au préfixe du code postal."
+
+      - name: geolocation_state
+        description: "État le plus fréquemment associé au préfixe du code postal."
