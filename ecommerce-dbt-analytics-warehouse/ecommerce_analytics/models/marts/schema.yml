@@ -98,6 +98,11 @@ models:
 
       - name: product_id
         description: "Identifiant du produit."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
 
       - name: seller_id
         description: "Identifiant du vendeur."
@@ -146,3 +151,44 @@ models:
 
       - name: has_undefined_payment_type
         description: "Indique si le type de paiement est non défini."
+
+
+  - name: dim_products
+    description: "Dimension contenant les informations descriptives et physiques des produits."
+
+    columns:
+      - name: product_id
+        description: "Identifiant unique du produit."
+        tests:
+          - not_null
+          - unique
+
+      - name: product_category_name
+        description: "Catégorie du produit."
+
+      - name: product_name_lenght
+        description: "Longueur du nom du produit."
+
+      - name: product_description_lenght
+        description: "Longueur de la description du produit."
+
+      - name: product_photos_qty
+        description: "Nombre de photos associées au produit."
+
+      - name: product_weight_g
+        description: "Poids du produit en grammes."
+
+      - name: product_length_cm
+        description: "Longueur du produit en centimètres."
+
+      - name: product_height_cm
+        description: "Hauteur du produit en centimètres."
+
+      - name: product_width_cm
+        description: "Largeur du produit en centimètres."
+
+      - name: has_missing_product_metadata
+        description: "Indique si certaines métadonnées du produit sont manquantes."
+
+      - name: has_invalid_product_dimensions
+        description: "Indique si les dimensions physiques du produit sont invalides."
