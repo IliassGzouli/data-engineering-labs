@@ -113,3 +113,36 @@ models:
 
       - name: item_total_value
         description: "Valeur totale de l'article, calculée comme price + freight_value."
+
+
+  - name: fct_payments
+    description: "Table de faits contenant une ligne par paiement associé à une commande."
+
+    columns:
+      - name: order_id
+        description: "Identifiant de la commande associée au paiement."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+
+      - name: payment_sequential
+        description: "Numéro séquentiel du paiement pour une même commande."
+        tests:
+          - not_null
+      - name: payment_type
+        description: "Type de moyen de paiement utilisé."
+
+      - name: payment_installments
+        description: "Nombre de versements associés au paiement."
+
+      - name: payment_value
+        description: "Montant du paiement."
+
+      - name: has_invalid_payment_value
+        description: "Indique si le montant du paiement est considéré comme invalide."
+
+      - name: has_undefined_payment_type
+        description: "Indique si le type de paiement est non défini."
