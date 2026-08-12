@@ -171,6 +171,9 @@ models:
       - name: product_category_name
         description: "Catégorie du produit."
 
+      - name: product_category_name_english
+        description: "Nom anglais de la catégorie du produit lorsque la traduction est disponible."
+
       - name: product_name_lenght
         description: "Longueur du nom du produit."
 
