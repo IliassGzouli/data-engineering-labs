@@ -46,7 +46,18 @@ models:
 
       - name: order_status
         description: "Statut actuel de la commande."
-
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - delivered
+                  - shipped
+                  - canceled
+                  - unavailable
+                  - invoiced
+                  - processing
+                  - created
+                  - approved
       - name: order_purchase_timestamp
         description: "Date et heure auxquelles la commande a été passée."
 
