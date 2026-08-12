@@ -217,3 +217,37 @@ models:
 
       - name: seller_state
         description: "État du vendeur."
+
+  - name: fct_reviews
+    description: "Table de faits contenant les avis clients associés aux commandes."
+
+    columns:
+      - name: review_id
+        description: "Identifiant de l'avis client."
+
+      - name: order_id
+        description: "Identifiant de la commande associée à l'avis."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+
+      - name: review_score
+        description: "Note attribuée par le client à la commande."
+
+      - name: review_comment_title
+        description: "Titre du commentaire laissé par le client."
+
+      - name: review_comment_message
+        description: "Contenu du commentaire laissé par le client."
+
+      - name: review_creation_date
+        description: "Date de création de l'avis."
+
+      - name: review_answer_timestamp
+        description: "Date et heure de réponse à l'avis."
+
+      - name: has_duplicate_review_id
+        description: "Indique si l'identifiant de l'avis est présent plusieurs fois dans le dataset."
