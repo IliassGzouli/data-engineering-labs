@@ -18,3 +18,8 @@ logs/*
 __pycache__/
 *.pyc
 .pytest_cache/
+# DuckDB
+*.duckdb
+
+# dbt local user configuration
+ecommerce_analytics/.user.yml
