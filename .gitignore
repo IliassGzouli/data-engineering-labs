@@ -39,6 +39,13 @@ airflow-webserver.pid
 *.parquet
 *.xlsx
 
+ecommerce-dbt-analytics-warehouse/tests/fixtures/ci_bronze/
+ecommerce-dbt-analytics-warehouse/tests/fixtures/ci_silver/
+
 # Docker and database volumes
 postgres_data/
 airflow_logs/
+
+
+#reautorise les fichiers synthétiques
+!ecommerce-dbt-analytics-warehouse/tests/fixtures/ci_raw/*.csv

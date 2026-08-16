@@ -1,2 +1,2 @@
 select *
-from read_parquet('../data/silver/olist_geolocation_dataset.parquet')
+from read_parquet('{{ var("silver_data_path")}}/olist_geolocation_dataset.parquet')

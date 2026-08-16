@@ -1,0 +1,2 @@
+order_id,order_item_id,product_id,seller_id,shipping_limit_date,price,freight_value
+order_001,1,product_001,seller_001,2026-01-03 00:00:00,100.0,10.0

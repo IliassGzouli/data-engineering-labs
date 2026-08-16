@@ -1,3 +1,3 @@
 select *
-from read_parquet('../data/silver/olist_orders_dataset.parquet')
+from read_parquet('{{ var("silver_data_path") }}/olist_orders_dataset.parquet')
 
