@@ -96,4 +96,5 @@ jobs:
 
       - name: Run dbt build
         working-directory: ecommerce-dbt-analytics-warehouse/ecommerce_analytics
-        run: dbt build --vars '{"silver_data_path": "../tests/fixtures/ci_silver"}'
+        run: |
+          dbt build --vars '{"silver_data_path": "../tests/fixtures/ci_silver"}'
