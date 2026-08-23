@@ -368,3 +368,19 @@ The local batch pipeline currently supports all nine source datasets from Raw th
 The project uses the **Brazilian E-Commerce Public Dataset by Olist**, a public dataset describing orders placed across Brazilian marketplaces. Its files cover customers, orders, line items, payments, reviews, products, sellers, geolocation, and Portuguese-to-English product category translations.
 
 Download the dataset from its original distribution page and review the source terms before using or redistributing it. The repository intentionally excludes the full raw dataset from Git.
+
+
+## Dashboard Preview
+
+### Ecommerce Executive Dashboard
+
+![Ecommerce Executive Dashboard](docs/images/ecommerce-dashboard.png)
+
+### Additional Analytics
+
+![Additional Dashboard Analytics](docs/images/ecommerce-dashboard-details.png)
+
+
+### Revenue by Month
+
+![Revenue by Month](docs/images/revenue-by-month.png)
