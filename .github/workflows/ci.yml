@@ -98,3 +98,6 @@ jobs:
         working-directory: ecommerce-dbt-analytics-warehouse/ecommerce_analytics
         run: |
           dbt build --vars '{"silver_data_path": "../tests/fixtures/ci_silver"}'
+
+      - name: Build Docker image
+        run: docker build -t ecommerce-dbt-analytics:ci .
