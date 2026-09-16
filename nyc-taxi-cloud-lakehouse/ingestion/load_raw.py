@@ -6,7 +6,7 @@ import pyarrow.parquet as pq
 
 logger = logging.getLogger(__name__)
 
-def load_raw_parquet(path: Path) -> pa.table:
+def load_raw_parquet(path: Path) -> pa.Table:
     """
     Load a raw Parquet file into a PyArrow Table.
     """
@@ -29,7 +29,7 @@ def load_raw_parquet(path: Path) -> pa.table:
     try:
         table = pq.read_table(path)
 
-    except (OSError, pa.ArrowExcepotion) as exc:
+    except (OSError, pa.ArrowException) as exc:
         logger.error(
             "Failed to load Parquet file %s: %s",
             path,

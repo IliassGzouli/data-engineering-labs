@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from ingestion.load_raw import load_raw_parquet
+from ingestion.validate import validate_table
 from transformation.load_processed import save_processed_parquet
 from transformation.load_quality import save_quality_outputs
 from transformation.quarantine import split_valid_and_quarantine
@@ -30,21 +31,24 @@ def run_transformation_pipeline(
     # 1. Load raw
     table = load_raw_parquet(input_path)
 
-    # 2. Transform
+    # 2. Validate raw data
+    validate_table(table)
+
+    # 3. Transform
     transformed_table = transform_trips(table)
 
-    # 3. Save processed
+    # 4. Save processed
     processed_path = save_processed_parquet(
         table=transformed_table,
         filename=input_path.name,
     )
 
-    # 4. Split quality
+    # 5. Split valid / quarantine
     valid_table, quarantine_table = split_valid_and_quarantine(
         transformed_table
     )
 
-    # 5. Save valid + quarantine
+    # 6. Save valid + quarantine
     valid_path, quarantine_path = save_quality_outputs(
         valid_table=valid_table,
         quarantine_table=quarantine_table,
