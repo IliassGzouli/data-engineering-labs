@@ -1,27 +1,18 @@
-name: NYC Taxi CI
+name: CI
 
 on:
   push:
     branches:
       - main
-    paths:
-      - "nyc-taxi-cloud-lakehouse/**"
-      - ".github/workflows/nyc-taxi-ci.yml"
+      - "feature/**"
 
   pull_request:
     branches:
       - main
-    paths:
-      - "nyc-taxi-cloud-lakehouse/**"
-      - ".github/workflows/nyc-taxi-ci.yml"
 
 jobs:
   tests:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: nyc-taxi-cloud-lakehouse
 
     steps:
       - name: Checkout repository
