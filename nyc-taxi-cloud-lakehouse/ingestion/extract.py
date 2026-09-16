@@ -38,9 +38,9 @@ def download_yellow_taxi_data(
 
     url = f"{BASE_URL}/{filename}"
 
-    RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    raw_data_dir.mkdir(parents=True, exist_ok=True)
 
-    output_path = RAW_DATA_DIR / filename
+    output_path = raw_data_dir / filename
 
     if output_path.exists():
         logger.info("File already exists, skipping download: %s", output_path)
