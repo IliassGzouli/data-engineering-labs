@@ -2,3 +2,4 @@ pandas==2.3.3
 pyarrow==22.0.0
 requests==2.32.5
 pytest==9.0.1
+boto3[crt]>=1.41.0
