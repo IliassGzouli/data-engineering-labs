@@ -10,16 +10,22 @@ VALID_DATA_PATH = Path("data/valid")
 QUARANTINE_DATA_PATH = Path("data/quarantine")
 
 def save_quality_outputs(
-        valid_table: pa.Table,
-        quarantine_table: pa.Table,
-        filename: str,
-        valid_data_dir: Path = VALID_DATA_PATH,
-        quarantine_data_dir: Path = QUARANTINE_DATA_PATH
+    valid_table: pa.Table,
+    quarantine_table: pa.Table,
+    filename: str,
+    valid_data_dir: Path | None = None,
+    quarantine_data_dir: Path | None = None,
 ) -> tuple[Path, Path]:
     """
     Save valid and quarantined NYC Taxi rows
     into separate Parquet files.
     """
+
+    if valid_data_dir is None:
+        valid_data_dir = VALID_DATA_PATH
+
+    if quarantine_data_dir is None:
+        quarantine_data_dir = QUARANTINE_DATA_PATH
 
     valid_data_dir.mkdir(
         parents=True,

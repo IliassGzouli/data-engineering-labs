@@ -4,8 +4,43 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+from unittest.mock import MagicMock
 
 from transformation.pipeline import run_transformation_pipeline
+
+@pytest.fixture(autouse=True)
+def mock_s3_upload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> MagicMock:
+    mock_upload = MagicMock()
+
+    monkeypatch.setattr(
+        "transformation.pipeline.upload_file_to_s3",
+        mock_upload,
+    )
+
+    return mock_upload
+
+
+@pytest.fixture(autouse=True)
+def isolate_pipeline_output_dirs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "transformation.load_processed.PROCESSED_DATA_DIR",
+        tmp_path / "processed",
+    )
+
+    monkeypatch.setattr(
+        "transformation.load_quality.VALID_DATA_PATH",
+        tmp_path / "valid",
+    )
+
+    monkeypatch.setattr(
+        "transformation.load_quality.QUARANTINE_DATA_PATH",
+        tmp_path / "quarantine",
+    )
 
 
 def test_pipeline_creates_all_outputs(
@@ -199,4 +234,50 @@ def test_pipeline_preserves_total_row_count(
     assert (
         valid_table.num_rows + quarantine_table.num_rows
         == table.num_rows
+    )
+
+
+#test des uploads vers s3
+def test_pipeline_uploads_outputs_to_s3(
+    tmp_path: Path,
+    mock_s3_upload: MagicMock,
+) -> None:
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
+
+    table = pa.table(
+        {
+            "tpep_pickup_datetime": [
+                datetime(2026, 1, 1, 10, 0, 0),
+            ],
+            "tpep_dropoff_datetime": [
+                datetime(2026, 1, 1, 10, 30, 0),
+            ],
+            "trip_distance": [10.0],
+        }
+    )
+
+    pq.write_table(table, raw_path)
+
+    processed_path, valid_path, quarantine_path = (
+        run_transformation_pipeline(raw_path)
+    )
+
+    assert mock_s3_upload.call_count == 3
+
+    mock_s3_upload.assert_any_call(
+        local_path=processed_path,
+        bucket_name="iliass-nyc-taxi-lakehouse-2026",
+        object_key="processed/yellow_tripdata_2026-01.parquet",
+    )
+
+    mock_s3_upload.assert_any_call(
+        local_path=valid_path,
+        bucket_name="iliass-nyc-taxi-lakehouse-2026",
+        object_key="quality/valid/yellow_tripdata_2026-01.parquet",
+    )
+
+    mock_s3_upload.assert_any_call(
+        local_path=quarantine_path,
+        bucket_name="iliass-nyc-taxi-lakehouse-2026",
+        object_key="quality/quarantine/yellow_tripdata_2026-01.parquet",
     )

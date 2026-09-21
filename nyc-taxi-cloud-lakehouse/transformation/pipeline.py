@@ -8,6 +8,9 @@ from transformation.load_quality import save_quality_outputs
 from transformation.quarantine import split_valid_and_quarantine
 from transformation.transform import transform_trips
 
+from cloud.s3 import upload_file_to_s3
+from config.cloud import S3_BUCKET_NAME
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,6 +56,25 @@ def run_transformation_pipeline(
         valid_table=valid_table,
         quarantine_table=quarantine_table,
         filename=input_path.name,
+    )
+
+    #upload to s3 aws
+    upload_file_to_s3(
+        local_path=processed_path,
+        bucket_name=S3_BUCKET_NAME,
+        object_key=f"processed/{processed_path.name}",
+    )
+
+    upload_file_to_s3(
+        local_path=valid_path,
+        bucket_name=S3_BUCKET_NAME,
+        object_key=f"quality/valid/{valid_path.name}",
+    )
+
+    upload_file_to_s3(
+        local_path=quarantine_path,
+        bucket_name=S3_BUCKET_NAME,
+        object_key=f"quality/quarantine/{quarantine_path.name}",
     )
 
     logger.info(

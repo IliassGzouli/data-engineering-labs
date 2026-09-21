@@ -12,11 +12,14 @@ PROCESSED_DATA_DIR = Path("data/processed")
 def save_processed_parquet(
     table: pa.Table,
     filename: str,
-    processed_data_dir: Path = PROCESSED_DATA_DIR,
+    processed_data_dir: Path | None = None,
 ) -> Path:
     """
     Save a transformed PyArrow Table as a processed Parquet file.
     """
+
+    if processed_data_dir is None:
+        processed_data_dir = PROCESSED_DATA_DIR
 
     processed_data_dir.mkdir(
         parents=True,
