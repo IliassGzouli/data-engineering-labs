@@ -6,7 +6,7 @@ import pyarrow.parquet as pq
 import pytest
 from unittest.mock import MagicMock
 
-from transformation.pipeline import run_transformation_pipeline
+from transformation.pipeline import (run_transformation_pipeline, extract_year_month)
 
 @pytest.fixture(autouse=True)
 def mock_s3_upload(
@@ -47,7 +47,7 @@ def test_pipeline_creates_all_outputs(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    raw_path = tmp_path / "raw.parquet"
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
 
     table = pa.table(
         {
@@ -95,7 +95,7 @@ def test_pipeline_transforms_data(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    raw_path = tmp_path / "raw.parquet"
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
 
     table = pa.table(
         {
@@ -130,7 +130,7 @@ def test_pipeline_separates_valid_and_quarantine(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    raw_path = tmp_path / "raw.parquet"
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
 
     table = pa.table(
         {
@@ -176,7 +176,7 @@ def test_pipeline_separates_valid_and_quarantine(
 def test_pipeline_stops_on_blocking_validation_error(
     tmp_path: Path,
 ) -> None:
-    raw_path = tmp_path / "raw.parquet"
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
 
     table = pa.table(
         {
@@ -202,7 +202,7 @@ def test_pipeline_stops_on_blocking_validation_error(
 def test_pipeline_preserves_total_row_count(
     tmp_path: Path,
 ) -> None:
-    raw_path = tmp_path / "raw.parquet"
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
 
     table = pa.table(
         {
@@ -267,17 +267,52 @@ def test_pipeline_uploads_outputs_to_s3(
     mock_s3_upload.assert_any_call(
         local_path=processed_path,
         bucket_name="iliass-nyc-taxi-lakehouse-2026",
-        object_key="processed/yellow_tripdata_2026-01.parquet",
+        object_key=(
+            "processed/"
+            "year=2026/"
+            "month=01/"
+            "yellow_tripdata_2026-01.parquet"
+        ),
     )
 
     mock_s3_upload.assert_any_call(
         local_path=valid_path,
         bucket_name="iliass-nyc-taxi-lakehouse-2026",
-        object_key="quality/valid/yellow_tripdata_2026-01.parquet",
+        object_key=(
+            "quality/valid/"
+            "year=2026/"
+            "month=01/"
+            "yellow_tripdata_2026-01.parquet"
+        ),
     )
 
     mock_s3_upload.assert_any_call(
         local_path=quarantine_path,
         bucket_name="iliass-nyc-taxi-lakehouse-2026",
-        object_key="quality/quarantine/yellow_tripdata_2026-01.parquet",
+        object_key=(
+            "quality/quarantine/"
+            "year=2026/"
+            "month=01/"
+            "yellow_tripdata_2026-01.parquet"
+        ),
     )
+
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected"),
+    [
+        ("yellow_tripdata_2026-01.parquet", (2026, 1)),
+        ("yellow_tripdata_2026-12.parquet", (2026, 12)),
+        ("yellow_tripdata_2025-07.parquet", (2025, 7)),
+    ],
+)
+def test_extract_year_month(
+    filename: str,
+    expected: tuple[int, int],
+) -> None:
+    assert extract_year_month(filename) == expected
+
+def test_extract_year_month_invalid_filename() -> None:
+    with pytest.raises(ValueError):
+        extract_year_month("yellow_tripdata_invalid.parquet")

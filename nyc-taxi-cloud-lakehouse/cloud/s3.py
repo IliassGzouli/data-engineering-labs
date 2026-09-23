@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 TRANSFER_CONFIG = TransferConfig(
     multipart_threshold=8 * 1024 * 1024,
-    multipart_chunksize=16 * 1024 * 1024,
-    max_concurrency=2,
+    multipart_chunksize=8 * 1024 * 1024,
+    max_concurrency=1,
     use_threads=True,
 )
 
@@ -46,11 +46,11 @@ def upload_file_to_s3(
 
     client_config = Config(
         region_name=AWS_REGION,
-        connect_timeout=10,
+        connect_timeout=30,
         read_timeout=300,
         tcp_keepalive=True,
         retries={
-            "max_attempts": 5,
+            "max_attempts": 10,
             "mode": "standard",
         },
     )
