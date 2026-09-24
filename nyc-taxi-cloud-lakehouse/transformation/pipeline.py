@@ -9,7 +9,8 @@ from transformation.quarantine import split_valid_and_quarantine
 from transformation.transform import transform_trips
 
 from cloud.s3 import upload_file_to_s3
-from config.cloud import S3_BUCKET_NAME
+from config.cloud import (S3_BUCKET_NAME,GLUE_PROCESSED_CRAWLER_NAME,GLUE_QUARANTINE_CRAWLER_NAME,GLUE_VALID_CRAWLER_NAME)
+from cloud.glue import start_glue_crawler
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,7 @@ def run_transformation_pipeline(
         ),
     )
 
+
     logger.info(
         "Transformation pipeline completed successfully"
     )
@@ -130,6 +132,11 @@ def run_transformation_pipeline(
         "Quarantine: %s",
         quarantine_path,
     )
+
+    #10. Start Glue Crawler
+    start_glue_crawler(GLUE_PROCESSED_CRAWLER_NAME)
+    start_glue_crawler(GLUE_VALID_CRAWLER_NAME)
+    start_glue_crawler(GLUE_QUARANTINE_CRAWLER_NAME)
 
     return (
         processed_path,

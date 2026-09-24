@@ -316,3 +316,55 @@ def test_extract_year_month(
 def test_extract_year_month_invalid_filename() -> None:
     with pytest.raises(ValueError):
         extract_year_month("yellow_tripdata_invalid.parquet")
+
+
+#test de glue_crawler
+@pytest.fixture(autouse=True)
+def mock_glue_crawler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> MagicMock:
+    mock_start = MagicMock()
+
+    monkeypatch.setattr(
+        "transformation.pipeline.start_glue_crawler",
+        mock_start,
+    )
+
+    return mock_start
+
+
+def test_pipeline_starts_glue_crawlers(
+    tmp_path: Path,
+    mock_glue_crawler: MagicMock,
+) -> None:
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
+
+    table = pa.table(
+        {
+            "tpep_pickup_datetime": [
+                datetime(2026, 1, 1, 10, 0, 0),
+            ],
+            "tpep_dropoff_datetime": [
+                datetime(2026, 1, 1, 10, 30, 0),
+            ],
+            "trip_distance": [10.0],
+        }
+    )
+
+    pq.write_table(table, raw_path)
+
+    run_transformation_pipeline(raw_path)
+
+    assert mock_glue_crawler.call_count == 3
+
+    mock_glue_crawler.assert_any_call(
+        "nyc-taxi-processed-crawler"
+    )
+
+    mock_glue_crawler.assert_any_call(
+        "nyc-taxi-valid-crawler"
+    )
+
+    mock_glue_crawler.assert_any_call(
+        "nyc-taxi-quarantine-crawler"
+    )
