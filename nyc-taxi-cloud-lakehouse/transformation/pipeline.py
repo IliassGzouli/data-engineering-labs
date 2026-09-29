@@ -8,7 +8,7 @@ from transformation.load_quality import save_quality_outputs
 from transformation.quarantine import split_valid_and_quarantine
 from transformation.transform import transform_trips
 
-from cloud.s3 import upload_file_to_s3
+from cloud.s3 import s3_object_exists, upload_file_to_s3
 from config.cloud import (S3_BUCKET_NAME,GLUE_PROCESSED_CRAWLER_NAME,GLUE_QUARANTINE_CRAWLER_NAME,GLUE_VALID_CRAWLER_NAME)
 from cloud.glue import start_glue_crawler
 
@@ -77,46 +77,84 @@ def run_transformation_pipeline(
     # 7. Extract year and month for S3 partitioning
     year, month = extract_year_month(input_path.name)
     
-    # 8. Upload processed to S3
-    upload_file_to_s3(
-        local_path=processed_path,
+    # 8. Build S3 object keys
+    processed_key = (
+        f"processed/"
+        f"year={year}/"
+        f"month={month:02d}/"
+        f"{processed_path.name}"
+    )
+
+    valid_key = (
+        f"quality/valid/"
+        f"year={year}/"
+        f"month={month:02d}/"
+        f"{valid_path.name}"
+    )
+
+    quarantine_key = (
+        f"quality/quarantine/"
+        f"year={year}/"
+        f"month={month:02d}/"
+        f"{quarantine_path.name}"
+    )
+
+    uploaded_any = False
+
+    # 9. Upload processed if missing
+    if s3_object_exists(
         bucket_name=S3_BUCKET_NAME,
-        object_key=(
-            f"processed/"
-            f"year={year}/"
-            f"month={month:02d}/"
-            f"{processed_path.name}"
-        ),
-    )
+        object_key=processed_key,
+    ):
+        logger.info(
+            "Processed object already exists in S3, skipping upload: s3://%s/%s",
+            S3_BUCKET_NAME,
+            processed_key,
+        )
+    else:
+        upload_file_to_s3(
+            local_path=processed_path,
+            bucket_name=S3_BUCKET_NAME,
+            object_key=processed_key,
+        )
+        uploaded_any = True
 
-    # 9. Upload valid data to S3
-    upload_file_to_s3(
-        local_path=valid_path,
+    # 10. Upload valid if missing
+    if s3_object_exists(
         bucket_name=S3_BUCKET_NAME,
-        object_key=(
-            f"quality/valid/"
-            f"year={year}/"
-            f"month={month:02d}/"
-            f"{valid_path.name}"
-        ),
-    )
+        object_key=valid_key,
+    ):
+        logger.info(
+            "Valid object already exists in S3, skipping upload: s3://%s/%s",
+            S3_BUCKET_NAME,
+            valid_key,
+        )
+    else:
+        upload_file_to_s3(
+            local_path=valid_path,
+            bucket_name=S3_BUCKET_NAME,
+            object_key=valid_key,
+        )
+        uploaded_any = True
 
-    # 10. Upload quarantine data to S3
-    upload_file_to_s3(
-        local_path=quarantine_path,
+    # 11. Upload quarantine if missing
+    if s3_object_exists(
         bucket_name=S3_BUCKET_NAME,
-        object_key=(
-            f"quality/quarantine/"
-            f"year={year}/"
-            f"month={month:02d}/"
-            f"{quarantine_path.name}"
-        ),
-    )
+        object_key=quarantine_key,
+    ):
+        logger.info(
+            "Quarantine object already exists in S3, skipping upload: s3://%s/%s",
+            S3_BUCKET_NAME,
+            quarantine_key,
+        )
+    else:
+        upload_file_to_s3(
+            local_path=quarantine_path,
+            bucket_name=S3_BUCKET_NAME,
+            object_key=quarantine_key,
+        )
+        uploaded_any = True
 
-
-    logger.info(
-        "Transformation pipeline completed successfully"
-    )
 
     logger.info(
         "Processed: %s",
@@ -133,10 +171,26 @@ def run_transformation_pipeline(
         quarantine_path,
     )
 
-    #10. Start Glue Crawler
-    start_glue_crawler(GLUE_PROCESSED_CRAWLER_NAME)
-    start_glue_crawler(GLUE_VALID_CRAWLER_NAME)
-    start_glue_crawler(GLUE_QUARANTINE_CRAWLER_NAME)
+
+    # Start Glue crawlers only when new S3 objects were uploaded
+    if uploaded_any:
+        logger.info(
+            "New S3 objects uploaded, starting Glue crawlers"
+        )
+
+        start_glue_crawler(GLUE_PROCESSED_CRAWLER_NAME)
+        start_glue_crawler(GLUE_VALID_CRAWLER_NAME)
+        start_glue_crawler(GLUE_QUARANTINE_CRAWLER_NAME)
+
+        logger.info("Glue crawlers started")
+    else:
+        logger.info(
+            "No new S3 objects uploaded, skipping Glue crawlers"
+        )
+
+    logger.info(
+        "Transformation pipeline completed successfully"
+    )
 
     return (
         processed_path,

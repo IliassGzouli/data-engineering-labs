@@ -6,6 +6,7 @@ from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
+
 from config.cloud import AWS_REGION
 
 logger = logging.getLogger(__name__)
@@ -80,3 +81,32 @@ def upload_file_to_s3(
         bucket_name,
         object_key,
     )
+
+
+def s3_object_exists(
+    bucket_name: str,
+    object_key: str,
+) -> bool:
+    """
+    Check whether an object already exists in S3.
+    """
+
+    s3_client = boto3.client(
+        "s3",
+        region_name=AWS_REGION,
+    )
+
+    try:
+        s3_client.head_object(
+            Bucket=bucket_name,
+            Key=object_key,
+        )
+        return True
+
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+
+        if error_code in ("404", "NoSuchKey", "NotFound"):
+            return False
+
+        raise

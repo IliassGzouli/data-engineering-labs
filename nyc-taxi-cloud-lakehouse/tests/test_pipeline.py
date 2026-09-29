@@ -21,6 +21,21 @@ def mock_s3_upload(
 
     return mock_upload
 
+@pytest.fixture(autouse=True)
+def mock_s3_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> MagicMock:
+    mock_exists = MagicMock(
+        return_value=False,
+    )
+
+    monkeypatch.setattr(
+        "transformation.pipeline.s3_object_exists",
+        mock_exists,
+    )
+
+    return mock_exists
+
 
 @pytest.fixture(autouse=True)
 def isolate_pipeline_output_dirs(
@@ -297,6 +312,35 @@ def test_pipeline_uploads_outputs_to_s3(
         ),
     )
 
+def test_pipeline_skips_existing_s3_outputs(
+    tmp_path: Path,
+    mock_s3_upload: MagicMock,
+    mock_s3_exists: MagicMock,
+    mock_glue_crawler: MagicMock,
+) -> None:
+    raw_path = tmp_path / "yellow_tripdata_2026-01.parquet"
+
+    table = pa.table(
+        {
+            "tpep_pickup_datetime": [
+                datetime(2026, 1, 1, 10, 0, 0),
+            ],
+            "tpep_dropoff_datetime": [
+                datetime(2026, 1, 1, 10, 30, 0),
+            ],
+            "trip_distance": [10.0],
+        }
+    )
+
+    pq.write_table(table, raw_path)
+
+    mock_s3_exists.return_value = True
+
+    run_transformation_pipeline(raw_path)
+
+    assert mock_s3_exists.call_count == 3
+    mock_s3_upload.assert_not_called()
+    mock_glue_crawler.assert_not_called()
 
 
 @pytest.mark.parametrize(

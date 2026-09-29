@@ -1,9 +1,10 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from botocore.exceptions import ClientError
 
 import pytest
 
-from cloud.s3 import upload_file_to_s3
+from cloud.s3 import upload_file_to_s3, s3_object_exists
 
 
 def test_upload_file_to_s3_success(tmp_path: Path) -> None:
@@ -57,3 +58,72 @@ def test_upload_file_to_s3_directory(
             bucket_name="test-bucket",
             object_key="raw/data",
         )
+
+# test exist object
+def test_s3_object_exists_returns_true() -> None:
+    mock_client = MagicMock()
+
+    with patch(
+        "cloud.s3.boto3.client",
+        return_value=mock_client,
+    ):
+        result = s3_object_exists(
+            bucket_name="test-bucket",
+            object_key="raw/sample.parquet",
+        )
+
+    assert result is True
+
+    mock_client.head_object.assert_called_once_with(
+        Bucket="test-bucket",
+        Key="raw/sample.parquet",
+    )
+
+
+def test_s3_object_exists_returns_false_for_404() -> None:
+    mock_client = MagicMock()
+
+    mock_client.head_object.side_effect = ClientError(
+        {
+            "Error": {
+                "Code": "404",
+                "Message": "Not Found",
+            }
+        },
+        "HeadObject",
+    )
+
+    with patch(
+        "cloud.s3.boto3.client",
+        return_value=mock_client,
+    ):
+        result = s3_object_exists(
+            bucket_name="test-bucket",
+            object_key="raw/missing.parquet",
+        )
+
+    assert result is False
+
+
+def test_s3_object_exists_raises_for_other_errors() -> None:
+    mock_client = MagicMock()
+
+    mock_client.head_object.side_effect = ClientError(
+        {
+            "Error": {
+                "Code": "403",
+                "Message": "Access Denied",
+            }
+        },
+        "HeadObject",
+    )
+
+    with patch(
+        "cloud.s3.boto3.client",
+        return_value=mock_client,
+    ):
+        with pytest.raises(ClientError):
+            s3_object_exists(
+                bucket_name="test-bucket",
+                object_key="raw/sample.parquet",
+            )
