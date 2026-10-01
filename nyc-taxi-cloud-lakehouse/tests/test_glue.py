@@ -43,3 +43,27 @@ def test_start_glue_crawler_rejects_empty_name() -> None:
         match="crawler_name must not be empty",
     ):
         start_glue_crawler("")
+
+
+def test_start_glue_crawler_skips_if_already_running() -> None:
+    mock_client = MagicMock()
+
+    mock_client.exceptions.CrawlerRunningException = type(
+        "CrawlerRunningException",
+        (Exception,),
+        {},
+    )
+
+    mock_client.start_crawler.side_effect = (
+        mock_client.exceptions.CrawlerRunningException()
+    )
+
+    with patch(
+        "cloud.glue.boto3.client",
+        return_value=mock_client,
+    ):
+        start_glue_crawler("test-crawler")
+
+    mock_client.start_crawler.assert_called_once_with(
+        Name="test-crawler",
+    )

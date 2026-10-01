@@ -12,6 +12,8 @@ def start_glue_crawler(crawler_name: str) -> None:
     """
     Start an AWS Glue crawler.
 
+    If the crawler is already running, skip it safely.
+
     Args:
         crawler_name: Name of the Glue crawler to start.
     """
@@ -29,6 +31,13 @@ def start_glue_crawler(crawler_name: str) -> None:
         crawler_name,
     )
 
-    client.start_crawler(
-        Name=crawler_name,
-    )
+    try:
+        client.start_crawler(
+            Name=crawler_name,
+        )
+
+    except client.exceptions.CrawlerRunningException:
+        logger.info(
+            "Glue crawler already running, skipping: %s",
+            crawler_name,
+        )
