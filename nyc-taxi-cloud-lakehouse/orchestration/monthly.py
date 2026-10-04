@@ -1,5 +1,6 @@
 import logging
 from requests.exceptions import HTTPError
+import sys
 
 import argparse
 
@@ -93,10 +94,31 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    run_monthly_pipeline(
-        year=args.year,
-        month=args.month,
-    )
+    try:
+        run_monthly_pipeline(
+            year=args.year,
+            month=args.month,
+        )
+
+    except HTTPError as exc:
+        status_code = (
+            exc.response.status_code
+            if exc.response is not None
+            else None
+        )
+
+        if status_code in (403, 404):
+            logger.warning(
+                "Source unavailable for %04d-%02d (HTTP %s)",
+                args.year,
+                args.month,
+                status_code,
+            )
+
+            # Special exit code interpreted by Airflow
+            sys.exit(75)
+
+        raise
 
 
 
