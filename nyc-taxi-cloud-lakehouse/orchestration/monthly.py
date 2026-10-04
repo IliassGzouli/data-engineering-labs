@@ -1,6 +1,8 @@
 import logging
 from requests.exceptions import HTTPError
 
+import argparse
+
 from ingestion.pipeline import run_ingestion_pipeline
 from transformation.pipeline import run_transformation_pipeline
 
@@ -73,10 +75,27 @@ if __name__ == "__main__":
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
 
-    run_backfill(
-        year=2026,
-        start_month=4,
-        end_month=8,
+    parser = argparse.ArgumentParser(
+        description="Run the NYC Taxi monthly pipeline."
+    )
+
+    parser.add_argument(
+        "--year",
+        type=int,
+        required=True,
+    )
+
+    parser.add_argument(
+        "--month",
+        type=int,
+        required=True,
+    )
+
+    args = parser.parse_args()
+
+    run_monthly_pipeline(
+        year=args.year,
+        month=args.month,
     )
 
 

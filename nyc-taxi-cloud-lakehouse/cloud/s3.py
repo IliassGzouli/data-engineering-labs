@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 TRANSFER_CONFIG = TransferConfig(
     multipart_threshold=8 * 1024 * 1024,
     multipart_chunksize=8 * 1024 * 1024,
-    max_concurrency=1,
+    max_concurrency=4,
     use_threads=True,
 )
 

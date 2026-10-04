@@ -48,31 +48,43 @@ def run_transformation_pipeline(
     )
 
     # 1. Load raw
+    logger.info("Step 1/6 - Loading raw parquet")
     table = load_raw_parquet(input_path)
+    logger.info("Step 1/6 - Raw parquet loaded")
 
     # 2. Validate raw data
+    logger.info("Step 2/6 - Validating raw data")
     validate_table(table)
+    logger.info("Step 2/6 - Validation completed")
 
     # 3. Transform
+    logger.info("Step 3/6 - Transforming trips")
     transformed_table = transform_trips(table)
+    logger.info("Step 3/6 - Transformation completed")
 
     # 4. Save processed
+    logger.info("Step 4/6 - Saving processed parquet")
     processed_path = save_processed_parquet(
         table=transformed_table,
         filename=input_path.name,
     )
+    logger.info("Step 4/6 - Processed parquet saved")
 
     # 5. Split valid / quarantine
+    logger.info("Step 5/6 - Splitting valid and quarantine")
     valid_table, quarantine_table = split_valid_and_quarantine(
         transformed_table
     )
+    logger.info("Step 5/6 - Quality split completed")
 
     # 6. Save valid + quarantine
+    logger.info("Step 6/6 - Saving quality outputs")
     valid_path, quarantine_path = save_quality_outputs(
         valid_table=valid_table,
         quarantine_table=quarantine_table,
         filename=input_path.name,
     )
+    logger.info("Step 6/6 - Quality outputs saved")
 
     # 7. Extract year and month for S3 partitioning
     year, month = extract_year_month(input_path.name)
