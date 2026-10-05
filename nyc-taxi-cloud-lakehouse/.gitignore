@@ -5,10 +5,14 @@ __pycache__/
 # Virtual environments
 .venv/
 venv/
+env/
 
 # Data
 data/raw/*
 !data/raw/.gitkeep
+data/processed/
+data/valid/
+data/quarantine/
 
 # macOS
 .DS_Store
@@ -19,5 +23,24 @@ data/raw/*
 
 # Environment variables
 .env
-__pycache__/
-*.pyc
+.env.*
+!.env.example
+.aws/
+*.pem
+*.key
+
+# Test and temporary artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.tmp
+*.swp
+*~
+
+# Local Airflow runtime
+airflow_home/
+airflow.cfg
+airflow.db*
+standalone_admin_password.txt
+simple_auth_manager_passwords.json*
+logs/

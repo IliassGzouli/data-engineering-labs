@@ -1,8 +1,8 @@
-import logging
-from requests.exceptions import HTTPError
-import sys
-
 import argparse
+import logging
+from collections.abc import Sequence
+
+from requests.exceptions import HTTPError
 
 from ingestion.pipeline import run_ingestion_pipeline
 from transformation.pipeline import run_transformation_pipeline
@@ -70,7 +70,9 @@ def run_backfill(
             month,
         )
 
-if __name__ == "__main__":
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the CLI; return 75 only for temporarily unavailable sources."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -92,7 +94,7 @@ if __name__ == "__main__":
         required=True,
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         run_monthly_pipeline(
@@ -116,9 +118,14 @@ if __name__ == "__main__":
             )
 
             # Special exit code interpreted by Airflow
-            sys.exit(75)
+            return 75
 
         raise
 
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 
 

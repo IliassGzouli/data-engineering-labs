@@ -46,7 +46,7 @@ def download_yellow_taxi_data(
         logger.info("File already exists, skipping download: %s", output_path)
         return output_path
     #Log du début
-    logger.info(f"Dowloading %s from %s", filename, url)
+    logger.info("Downloading %s from %s", filename, url)
 
     #Faire la requête HTTP
     try:
@@ -76,7 +76,7 @@ def download_yellow_taxi_data(
 
         raise
 
-    logger.info("Download completed succesfully: %s", output_path)
+    logger.info("Download completed successfully: %s", output_path)
 
     return output_path
 
