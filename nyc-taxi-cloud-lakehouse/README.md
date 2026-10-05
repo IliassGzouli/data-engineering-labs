@@ -96,6 +96,57 @@ GROUP BY year, month;
 
 Multipart transfers use an **8 MiB threshold**, **8 MiB chunks** and **four concurrent transfers**. A previously measured local benchmark for approximately 95 MB went from about 145 seconds at concurrency 1 to 16 seconds at concurrency 4. These are environment-specific observations, not throughput guarantees. This tuning addressed the observed slow uploads and Airflow heartbeat timeout.
 
+### Partitioned S3 data lake
+
+The processed layer is partitioned by year and month to keep the lake organized and query-friendly.
+
+<p align="center">
+  <img src="docs/images/s3-year-month-partitions.png"
+       alt="Amazon S3 year and month partitioning for the NYC Taxi lakehouse"
+       width="900">
+</p>
+
+### Glue Crawlers
+
+Processed, valid, and quarantine datasets are cataloged through dedicated AWS Glue Crawlers.
+
+<p align="center">
+  <img src="docs/images/glue-crawlers-success.png"
+       alt="Successful AWS Glue Crawlers for processed, valid, and quarantine datasets"
+       width="900">
+</p>
+
+### Athena query results
+
+The cataloged valid dataset can be queried directly in Athena across monthly partitions.
+
+<p align="center">
+  <img src="docs/images/athena-query-results.png"
+       alt="Amazon Athena query results over partitioned NYC Taxi data"
+       width="900">
+</p>
+
+
+### Airflow execution
+
+A successful end-to-end monthly run orchestrated by Airflow.
+
+<p align="center">
+  <img src="docs/images/airflow-task-success.png"
+       alt="Successful Airflow execution of the NYC Taxi monthly pipeline"
+       width="900">
+</p>
+
+### Continuous integration
+
+The CI pipeline runs the automated test suite and Docker build on each relevant push.
+
+<p align="center">
+  <img src="docs/images/github-actions-ci-success.png"
+       alt="Successful GitHub Actions CI pipeline for NYC Taxi Cloud Lakehouse"
+       width="900">
+</p>
+
 ## Installation and configuration
 
 Run commands from this project directory. The established setup separates the pipeline/test environment (`data_engineering`) from the scheduler environment (`airflow_env`).
