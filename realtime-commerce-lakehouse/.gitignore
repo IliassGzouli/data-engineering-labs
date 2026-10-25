@@ -1,0 +1,22 @@
+# Données locales et checkpoints
+data/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Spark
+artifacts/
+spark-warehouse/
+metastore_db/
+derby.log
+
+# macOS
+.DS_Store
